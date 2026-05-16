@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "corepack enable && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @workspace/db run push && pnpm --filter @workspace/api-server run build && PORT=5173 BASE_PATH=/ pnpm --filter @workspace/web run build",
+  "outputDirectory": "apps/web/dist/public",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/api", "destination": "/api" },
+    { "source": "/((?!api).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/index.ts": {
+      "memory": 512,
+      "maxDuration": 30,
+      "includeFiles": "apps/api-server/dist/**"
+    }
+  }
+}

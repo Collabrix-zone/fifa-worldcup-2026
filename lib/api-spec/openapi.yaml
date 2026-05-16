@@ -1,0 +1,1292 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.2.0
+  description: Football Kickoff 2026 API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: auth
+  - name: tournaments
+  - name: matches
+  - name: predictions
+  - name: leaderboard
+  - name: teams
+  - name: admin
+  - name: me
+  - name: storage
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /auth/signup:
+    post:
+      operationId: signup
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignupInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginInput" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      responses:
+        "204":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      responses:
+        "200":
+          description: Current authenticated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+
+  /auth/send-otp:
+    post:
+      operationId: sendOtp
+      tags: [auth]
+      summary: Email a 6-digit verification code to the current user
+      responses:
+        "200":
+          description: Code sent (or skipped if already verified)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OtpSendResponse" }
+
+  /auth/verify-otp:
+    post:
+      operationId: verifyOtp
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VerifyOtpInput" }
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimpleOk" }
+
+  /tournaments:
+    get:
+      operationId: listTournaments
+      tags: [tournaments]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tournament" }
+
+  /tournaments/{slug}:
+    get:
+      operationId: getTournament
+      tags: [tournaments]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TournamentDetail" }
+
+  /tournaments/{slug}/join:
+    post:
+      operationId: joinTournament
+      tags: [tournaments]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Joined
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Participant" }
+
+  /tournaments/{slug}/matches:
+    get:
+      operationId: listMatches
+      tags: [matches]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+        - in: query
+          name: status
+          required: false
+          schema: { type: string, enum: [open, locked, completed, all] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MatchWithPrediction" }
+    post:
+      operationId: createMatch
+      tags: [matches, admin]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MatchInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Match" }
+
+  /tournaments/{slug}/matches/import:
+    post:
+      operationId: importMatchesCsv
+      tags: [matches, admin]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CsvImportInput" }
+      responses:
+        "200":
+          description: Imported
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportSummary" }
+
+  /matches/{id}:
+    patch:
+      operationId: updateMatch
+      tags: [matches, admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MatchUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Match" }
+    delete:
+      operationId: deleteMatch
+      tags: [matches, admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /matches/{id}/result:
+    post:
+      operationId: enterMatchResult
+      tags: [matches, admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MatchResultInput" }
+      responses:
+        "200":
+          description: Result saved and predictions scored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Match" }
+
+  /matches/{id}/recalculate:
+    post:
+      operationId: recalculateMatch
+      tags: [matches, admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Recalculated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Match" }
+
+  /matches/{id}/predict:
+    post:
+      operationId: submitPrediction
+      tags: [predictions]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PredictionInput" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Prediction" }
+
+  /tournaments/{slug}/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+        - in: query
+          name: filter
+          required: false
+          schema: { type: string, enum: [overall, group_stage, knockouts, this_week] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/LeaderboardEntry" }
+
+  /me/stats:
+    get:
+      operationId: getMyStats
+      tags: [me]
+      parameters:
+        - in: query
+          name: tournamentSlug
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserStats" }
+
+  /me/account-status:
+    get:
+      operationId: getMyAccountStatus
+      tags: [me]
+      summary: Combined verification + payment + identity state for the current user
+      responses:
+        "200":
+          description: Account status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountStatus" }
+
+  /me/avatar:
+    post:
+      operationId: updateMyAvatar
+      tags: [me]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubmitAvatarInput" }
+      responses:
+        "200":
+          description: Avatar updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimpleOk" }
+
+  /me/payment:
+    post:
+      operationId: submitPayment
+      tags: [me]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubmitPaymentInput" }
+      responses:
+        "200":
+          description: Payment submitted for review
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimpleOk" }
+
+  /me/identity:
+    post:
+      operationId: submitIdentity
+      tags: [me]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubmitIdentityInput" }
+      responses:
+        "200":
+          description: Identity submitted for review
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimpleOk" }
+
+  /admin/payment-settings:
+    get:
+      operationId: getPaymentSettings
+      tags: [admin]
+      responses:
+        "200":
+          description: Current UPI / pricing settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentSettings" }
+    put:
+      operationId: updatePaymentSettings
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentSettingsInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentSettings" }
+
+  /admin/pending-payments:
+    get:
+      operationId: listPendingPayments
+      tags: [admin]
+      responses:
+        "200":
+          description: Users with submitted but un-approved payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PendingPayment" }
+
+  /admin/users/{id}/payment-decision:
+    post:
+      operationId: decideUserPayment
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminDecisionInput" }
+      responses:
+        "200":
+          description: Decision applied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimpleOk" }
+
+  /admin/pending-identities:
+    get:
+      operationId: listPendingIdentities
+      tags: [admin]
+      responses:
+        "200":
+          description: Users with pending identity reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PendingIdentity" }
+
+  /admin/users/{id}/identity-decision:
+    post:
+      operationId: decideUserIdentity
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminDecisionInput" }
+      responses:
+        "200":
+          description: Decision applied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimpleOk" }
+
+  /storage/uploads/request-url:
+    post:
+      tags: [storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UploadUrlRequest" }
+      responses:
+        "200":
+          description: Presigned upload URL generated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadUrlResponse" }
+
+  /me/profile:
+    patch:
+      operationId: updateMyProfile
+      tags: [me]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+
+  /teams:
+    get:
+      operationId: listTeams
+      tags: [teams]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Team" }
+    post:
+      operationId: createTeam
+      tags: [teams, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Team" }
+
+  /admin/overview:
+    get:
+      operationId: getAdminOverview
+      tags: [admin]
+      parameters:
+        - in: query
+          name: tournamentSlug
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminOverview" }
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: All registered users with tournament participation + activity
+      parameters:
+        - in: query
+          name: tournamentSlug
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminUserRow" }
+
+  /admin/users/{id}/ban:
+    post:
+      operationId: banUser
+      tags: [admin]
+      summary: Ban a user (blocks all authed API calls; UI shows the reason)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 500 }
+      responses:
+        "200":
+          description: Banned
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+
+  /admin/users/{id}/unban:
+    post:
+      operationId: unbanUser
+      tags: [admin]
+      summary: Lift a previously applied ban
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Unbanned
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+
+  /admin/users/{id}/name:
+    patch:
+      operationId: setUserName
+      tags: [admin]
+      summary: Override a user's display name (works even after name lock)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+
+  /matches/{id}/lineups:
+    get:
+      operationId: getMatchLineups
+      tags: [public]
+      summary: Starting lineups + formations for both teams in a match
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchLineups" }
+        "404":
+          description: Match not found
+
+  /teams/{id}/form:
+    get:
+      operationId: getTeamForm
+      tags: [public]
+      summary: Recent finished matches (last 5) for a team, used in the match detail view
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamForm" }
+        "404":
+          description: Team not found
+
+  /sync/status:
+    get:
+      operationId: getSyncStatus
+      tags: [public]
+      summary: When fixtures + scores were last synced from football-data.org
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncStatus" }
+
+  /admin/sync/fixtures:
+    post:
+      operationId: syncFixtures
+      tags: [admin]
+      summary: Pull fixtures + schedule from football-data.org for the World Cup
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SyncRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncFixturesResponse" }
+
+  /admin/sync/scores:
+    post:
+      operationId: syncScores
+      tags: [admin]
+      summary: Pull live scores (incl. extra time + penalties) and auto-score predictions
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SyncRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncScoresResponse" }
+
+  /admin/predictions:
+    get:
+      operationId: getAdminPredictions
+      tags: [admin]
+      parameters:
+        - in: query
+          name: tournamentSlug
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MatchPredictionSummary" }
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+
+    SignupInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 6 }
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1 }
+
+    AuthUser:
+      type: object
+      required: [id, name, email, role, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [user, admin] }
+        createdAt: { type: string, format: date-time }
+
+    ProfileUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+
+    Tournament:
+      type: object
+      required: [id, name, slug, description, status, isPublic, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        status: { type: string, enum: [upcoming, live, completed] }
+        startDate: { type: ["string", "null"], format: date-time }
+        endDate: { type: ["string", "null"], format: date-time }
+        isPublic: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    TournamentDetail:
+      type: object
+      required: [id, name, slug, description, status, isPublic, createdAt, isParticipant, participantCount]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        status: { type: string, enum: [upcoming, live, completed] }
+        startDate: { type: ["string", "null"], format: date-time }
+        endDate: { type: ["string", "null"], format: date-time }
+        isPublic: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        isParticipant: { type: boolean }
+        participantCount: { type: integer }
+
+    Participant:
+      type: object
+      required: [id, tournamentId, userId, displayName, status, joinedAt]
+      properties:
+        id: { type: integer }
+        tournamentId: { type: integer }
+        userId: { type: integer }
+        displayName: { type: string }
+        status: { type: string, enum: [active, pending, blocked] }
+        joinedAt: { type: string, format: date-time }
+
+    Team:
+      type: object
+      required: [id, name, code, flag]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        code: { type: string }
+        flag: { type: string }
+        primaryColor: { type: ["string", "null"] }
+        secondaryColor: { type: ["string", "null"] }
+        crestUrl: { type: ["string", "null"] }
+
+    TeamInput:
+      type: object
+      required: [name, code]
+      properties:
+        name: { type: string, minLength: 1 }
+        code: { type: string, minLength: 2, maxLength: 5 }
+        flag: { type: string }
+        primaryColor: { type: string }
+        secondaryColor: { type: string }
+
+    Match:
+      type: object
+      required: [id, tournamentId, round, group, teamA, teamB, kickoffTime, lockTime, status]
+      properties:
+        id: { type: integer }
+        tournamentId: { type: integer }
+        round: { type: string }
+        group: { type: string }
+        teamA: { $ref: "#/components/schemas/Team" }
+        teamB: { $ref: "#/components/schemas/Team" }
+        kickoffTime: { type: string, format: date-time }
+        lockTime: { type: string, format: date-time }
+        status: { type: string, enum: [open, locked, completed] }
+        scoreA: { type: ["integer", "null"] }
+        scoreB: { type: ["integer", "null"] }
+        extraTimeScoreA: { type: ["integer", "null"] }
+        extraTimeScoreB: { type: ["integer", "null"] }
+        penaltiesScoreA: { type: ["integer", "null"] }
+        penaltiesScoreB: { type: ["integer", "null"] }
+        duration:
+          type: ["string", "null"]
+          enum: ["REGULAR", "EXTRA_TIME", "PENALTY_SHOOTOUT", null]
+
+    MatchWithPrediction:
+      type: object
+      required: [id, tournamentId, round, group, teamA, teamB, kickoffTime, lockTime, status, isLocked]
+      properties:
+        id: { type: integer }
+        tournamentId: { type: integer }
+        round: { type: string }
+        group: { type: string }
+        teamA: { $ref: "#/components/schemas/Team" }
+        teamB: { $ref: "#/components/schemas/Team" }
+        kickoffTime: { type: string, format: date-time }
+        lockTime: { type: string, format: date-time }
+        status: { type: string, enum: [open, locked, completed] }
+        scoreA: { type: ["integer", "null"] }
+        scoreB: { type: ["integer", "null"] }
+        extraTimeScoreA: { type: ["integer", "null"] }
+        extraTimeScoreB: { type: ["integer", "null"] }
+        penaltiesScoreA: { type: ["integer", "null"] }
+        penaltiesScoreB: { type: ["integer", "null"] }
+        duration:
+          type: ["string", "null"]
+          enum: ["REGULAR", "EXTRA_TIME", "PENALTY_SHOOTOUT", null]
+        isLocked: { type: boolean }
+        myPrediction:
+          oneOf:
+            - { $ref: "#/components/schemas/Prediction" }
+            - { type: "null" }
+
+    MatchInput:
+      type: object
+      required: [teamAId, teamBId, kickoffTime, lockTime]
+      properties:
+        round: { type: string }
+        group: { type: string }
+        teamAId: { type: integer }
+        teamBId: { type: integer }
+        kickoffTime: { type: string, format: date-time }
+        lockTime: { type: string, format: date-time }
+        status: { type: string, enum: [open, locked, completed] }
+
+    MatchUpdate:
+      type: object
+      properties:
+        round: { type: string }
+        group: { type: string }
+        teamAId: { type: integer }
+        teamBId: { type: integer }
+        kickoffTime: { type: string, format: date-time }
+        lockTime: { type: string, format: date-time }
+        status: { type: string, enum: [open, locked, completed] }
+        scoreA: { type: integer }
+        scoreB: { type: integer }
+
+    MatchResultInput:
+      type: object
+      required: [scoreA, scoreB]
+      properties:
+        scoreA: { type: integer, minimum: 0 }
+        scoreB: { type: integer, minimum: 0 }
+
+    PredictionInput:
+      type: object
+      required: [predictedScoreA, predictedScoreB]
+      properties:
+        predictedScoreA: { type: integer, minimum: 0, maximum: 99 }
+        predictedScoreB: { type: integer, minimum: 0, maximum: 99 }
+        predictedExtraTimeA: { type: ["integer", "null"], minimum: 0, maximum: 99 }
+        predictedExtraTimeB: { type: ["integer", "null"], minimum: 0, maximum: 99 }
+        predictedPenaltiesA: { type: ["integer", "null"], minimum: 0, maximum: 30 }
+        predictedPenaltiesB: { type: ["integer", "null"], minimum: 0, maximum: 30 }
+
+    Prediction:
+      type: object
+      required: [id, tournamentId, matchId, userId, predictedScoreA, predictedScoreB, status, submittedAt]
+      properties:
+        id: { type: integer }
+        tournamentId: { type: integer }
+        matchId: { type: integer }
+        userId: { type: integer }
+        predictedScoreA: { type: integer }
+        predictedScoreB: { type: integer }
+        predictedExtraTimeA: { type: ["integer", "null"] }
+        predictedExtraTimeB: { type: ["integer", "null"] }
+        predictedPenaltiesA: { type: ["integer", "null"] }
+        predictedPenaltiesB: { type: ["integer", "null"] }
+        points: { type: ["integer", "null"] }
+        resultLabel:
+          type: ["string", "null"]
+          enum: ["Exact Score", "Goal Difference", "Correct Result", "One Team Score", "Missed", null]
+        status: { type: string, enum: [submitted, locked, scored] }
+        submittedAt: { type: string, format: date-time }
+
+    LeaderboardEntry:
+      type: object
+      required: [userId, displayName, rank, totalPoints, exactScores, correctResults, goalDifferenceHits, oneTeamScoreHits, lastMatchPoints, isMe]
+      properties:
+        userId: { type: integer }
+        displayName: { type: string }
+        rank: { type: integer }
+        totalPoints: { type: number }
+        exactScores: { type: integer }
+        correctResults: { type: integer }
+        goalDifferenceHits: { type: integer }
+        oneTeamScoreHits: { type: integer }
+        lastMatchPoints: { type: number }
+        isMe: { type: boolean }
+
+    UserStats:
+      type: object
+      required: [rank, totalPoints, exactScores, correctResults, goalDifferenceHits, predictionsSubmitted, pendingPredictions, isParticipant]
+      properties:
+        rank: { type: ["integer", "null"] }
+        totalPoints: { type: number }
+        exactScores: { type: integer }
+        correctResults: { type: integer }
+        goalDifferenceHits: { type: integer }
+        predictionsSubmitted: { type: integer }
+        pendingPredictions: { type: integer }
+        isParticipant: { type: boolean }
+
+    AdminUserRow:
+      type: object
+      required: [id, name, email, role, createdAt, isParticipant, predictionsSubmitted, totalPoints, banned]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [user, admin] }
+        createdAt: { type: string, format: date-time }
+        isParticipant: { type: boolean }
+        predictionsSubmitted: { type: integer }
+        totalPoints: { type: number }
+        banned: { type: boolean }
+        banReason: { type: ["string", "null"] }
+
+    AdminOverview:
+      type: object
+      required: [totalUsers, totalParticipants, totalMatches, openMatches, lockedMatches, completedMatches, totalPredictions, missingPredictions]
+      properties:
+        totalUsers: { type: integer }
+        totalParticipants: { type: integer }
+        totalMatches: { type: integer }
+        openMatches: { type: integer }
+        lockedMatches: { type: integer }
+        completedMatches: { type: integer }
+        totalPredictions: { type: integer }
+        missingPredictions: { type: integer }
+
+    MatchPredictionSummary:
+      type: object
+      required: [matchId, label, kickoffTime, status, predictionsCount, missingCount, isLocked]
+      properties:
+        matchId: { type: integer }
+        label: { type: string }
+        kickoffTime: { type: string, format: date-time }
+        status: { type: string, enum: [open, locked, completed] }
+        predictionsCount: { type: integer }
+        missingCount: { type: integer }
+        isLocked: { type: boolean }
+
+    CsvImportInput:
+      type: object
+      required: [csv]
+      properties:
+        csv: { type: string, minLength: 1 }
+
+    ImportSummary:
+      type: object
+      required: [matchesCreated, teamsCreated, skippedDuplicates, errors]
+      properties:
+        matchesCreated: { type: integer }
+        teamsCreated: { type: integer }
+        skippedDuplicates: { type: integer }
+        errors:
+          type: array
+          items: { type: string }
+
+    LineupPlayer:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        position: { type: ["string", "null"] }
+        shirtNumber: { type: ["integer", "null"] }
+
+    TeamLineup:
+      type: object
+      required: [teamId, teamName, lineup, bench]
+      properties:
+        teamId: { type: integer }
+        teamName: { type: string }
+        formation: { type: ["string", "null"] }
+        coach: { type: ["string", "null"] }
+        lineup:
+          type: array
+          items: { $ref: "#/components/schemas/LineupPlayer" }
+        bench:
+          type: array
+          items: { $ref: "#/components/schemas/LineupPlayer" }
+
+    MatchLineups:
+      type: object
+      required: [matchId, provider, cachedAt, home, away]
+      properties:
+        matchId: { type: integer }
+        provider: { type: string }
+        cachedAt: { type: ["string", "null"], format: date-time }
+        unavailableReason: { type: ["string", "null"] }
+        home: { $ref: "#/components/schemas/TeamLineup" }
+        away: { $ref: "#/components/schemas/TeamLineup" }
+
+    TeamFormEntry:
+      type: object
+      required: [utcDate, opponentName, isHome, scoreFor, scoreAgainst, result]
+      properties:
+        utcDate: { type: string, format: date-time }
+        opponentName: { type: string }
+        opponentCode: { type: ["string", "null"] }
+        opponentCrest: { type: ["string", "null"] }
+        isHome: { type: boolean }
+        scoreFor: { type: ["integer", "null"] }
+        scoreAgainst: { type: ["integer", "null"] }
+        result:
+          type: ["string", "null"]
+          enum: ["W", "D", "L", null]
+        competition: { type: ["string", "null"] }
+
+    TeamForm:
+      type: object
+      required: [teamId, teamName, provider, cachedAt, recent]
+      properties:
+        teamId: { type: integer }
+        teamName: { type: string }
+        provider: { type: string }
+        cachedAt: { type: ["string", "null"], format: date-time }
+        unavailableReason: { type: ["string", "null"] }
+        recent:
+          type: array
+          items: { $ref: "#/components/schemas/TeamFormEntry" }
+
+    SyncStatus:
+      type: object
+      required: [provider, lastFixturesSyncAt, lastScoresSyncAt, pollerEnabled]
+      properties:
+        provider: { type: string }
+        lastFixturesSyncAt: { type: ["string", "null"], format: date-time }
+        lastScoresSyncAt: { type: ["string", "null"], format: date-time }
+        pollerEnabled: { type: boolean }
+
+    SyncRequest:
+      type: object
+      properties:
+        tournamentSlug: { type: string }
+
+    SyncFixturesResponse:
+      type: object
+      required: [provider, competition, matchesCreated, matchesUpdated, teamsCreated, teamsLinked, errors]
+      properties:
+        provider: { type: string }
+        competition: { type: string }
+        matchesCreated: { type: integer }
+        matchesUpdated: { type: integer }
+        teamsCreated: { type: integer }
+        teamsLinked: { type: integer }
+        errors:
+          type: array
+          items: { type: string }
+
+    SyncScoresResponse:
+      type: object
+      required: [provider, matchesUpdated, matchesCompleted, predictionsScored, errors]
+      properties:
+        provider: { type: string }
+        matchesUpdated: { type: integer }
+        matchesCompleted: { type: integer }
+        predictionsScored: { type: integer }
+        errors:
+          type: array
+          items: { type: string }
+
+    SimpleOk:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+
+    OtpSendResponse:
+      type: object
+      required: [sent, alreadyVerified]
+      properties:
+        sent: { type: boolean }
+        alreadyVerified: { type: boolean }
+        expiresAt: { type: ["string", "null"], format: date-time }
+
+    VerifyOtpInput:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 6, maxLength: 6 }
+
+    PaymentSettingsPublic:
+      type: object
+      required: [upiId, upiDisplayName, entryFeeAmount, entryFeeCurrency]
+      properties:
+        upiId: { type: string }
+        upiDisplayName: { type: string }
+        qrCodeUrl: { type: ["string", "null"] }
+        prizeNote: { type: ["string", "null"] }
+        entryFeeAmount: { type: integer }
+        entryFeeCurrency: { type: string }
+
+    PaymentSettings:
+      type: object
+      required: [upiId, upiDisplayName, entryFeeAmount, entryFeeCurrency, updatedAt]
+      properties:
+        upiId: { type: string }
+        upiDisplayName: { type: string }
+        qrCodeUrl: { type: ["string", "null"] }
+        prizeNote: { type: ["string", "null"] }
+        entryFeeAmount: { type: integer }
+        entryFeeCurrency: { type: string }
+        updatedAt: { type: string, format: date-time }
+
+    PaymentSettingsInput:
+      type: object
+      required: [upiId, upiDisplayName]
+      properties:
+        upiId: { type: string, minLength: 3 }
+        upiDisplayName: { type: string, minLength: 1 }
+        qrCodeUrl: { type: ["string", "null"] }
+        prizeNote: { type: ["string", "null"] }
+        entryFeeAmount: { type: integer, minimum: 0 }
+        entryFeeCurrency: { type: string, minLength: 3, maxLength: 3 }
+
+    AccountStatus:
+      type: object
+      required: [emailVerified, paymentStatus, identityStatus, canPredict, paymentSettings, banned, displayNameLocked]
+      properties:
+        emailVerified: { type: boolean }
+        emailVerificationExpiresAt: { type: ["string", "null"], format: date-time }
+        paymentStatus: { type: string, enum: [unpaid, submitted, paid, rejected] }
+        paymentScreenshotUrl: { type: ["string", "null"] }
+        paymentSubmittedAt: { type: ["string", "null"], format: date-time }
+        paymentNotes: { type: ["string", "null"] }
+        identityStatus: { type: string, enum: [unsubmitted, pending, verified, rejected] }
+        identityPhotoUrl: { type: ["string", "null"] }
+        identitySubmittedAt: { type: ["string", "null"], format: date-time }
+        identityNotes: { type: ["string", "null"] }
+        avatarUrl: { type: ["string", "null"] }
+        canPredict: { type: boolean }
+        paymentSettings: { $ref: "#/components/schemas/PaymentSettingsPublic" }
+        banned: { type: boolean }
+        banReason: { type: ["string", "null"] }
+        displayNameLocked: { type: boolean }
+
+    SubmitAvatarInput:
+      type: object
+      required: [photoUrl]
+      properties:
+        photoUrl: { type: string, minLength: 1 }
+
+    SubmitPaymentInput:
+      type: object
+      required: [screenshotUrl]
+      properties:
+        screenshotUrl: { type: string, minLength: 1 }
+
+    SubmitIdentityInput:
+      type: object
+      required: [photoUrl]
+      properties:
+        photoUrl: { type: string, minLength: 1 }
+
+    PendingPayment:
+      type: object
+      required: [userId, name, email, paymentScreenshotUrl, paymentSubmittedAt]
+      properties:
+        userId: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        paymentScreenshotUrl: { type: string }
+        paymentSubmittedAt: { type: string, format: date-time }
+        paymentNotes: { type: ["string", "null"] }
+
+    PendingIdentity:
+      type: object
+      required: [userId, name, email, identityPhotoUrl, identitySubmittedAt]
+      properties:
+        userId: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        identityPhotoUrl: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        identitySubmittedAt: { type: string, format: date-time }
+        identityNotes: { type: ["string", "null"] }
+
+    AdminDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approve, reject] }
+        notes: { type: string }
+
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1 }
+        size: { type: integer, minimum: 1 }
+        contentType: { type: string, minLength: 1 }
+
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
+        metadata: { $ref: "#/components/schemas/UploadUrlRequest" }

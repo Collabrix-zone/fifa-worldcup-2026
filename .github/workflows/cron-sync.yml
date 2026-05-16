@@ -1,0 +1,56 @@
+name: Cron sync (scores + fixtures)
+
+# Periodic syncs against football-data.org. Two flavours:
+#   - scores : fast (<2s) → hit the secret-protected webhook on Vercel.
+#   - fixtures : slow (~100s, beyond Vercel hobby timeout) → run the
+#     pnpm sync-fixtures CLI here against Neon directly.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 min (scores)
+    - cron: "0 */6 * * *"   # every 6 h (fixtures)
+  workflow_dispatch: {}
+
+concurrency:
+  group: cron-sync
+  cancel-in-progress: false
+
+env:
+  APP_URL: https://yesfamindia-football-2026.vercel.app
+
+jobs:
+  scores:
+    if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: POST /api/cron/sync-scores
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -e
+          curl -fsS -X POST "$APP_URL/api/cron/sync-scores" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            -w "\nHTTP %{http_code}\n"
+
+  fixtures:
+    if: github.event.schedule == '0 */6 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm sync-fixtures
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FOOTBALL_DATA_API_TOKEN: ${{ secrets.FOOTBALL_DATA_API_TOKEN }}
+        run: pnpm --filter @workspace/api-server run sync-fixtures

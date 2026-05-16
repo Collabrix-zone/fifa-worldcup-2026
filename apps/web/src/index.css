@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Libre+Bodoni:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,700&family=Public+Sans:wght@300;400;500;600;700;800&family=Russo+One&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-primary-border: var(--sidebar-primary-border);
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-accent-border: var(--sidebar-accent-border);
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --color-pitch-green: #18A558;
+  --color-fresh-grass: #4ADE80;
+  --color-whistle-yellow: #FACC15;
+  --color-goal-white: #F8FAFC;
+  --color-electric-blue: #38BDF8;
+  --color-bold-blue: #2563EB;
+  --color-bright-blue: #3B82F6;
+  --color-goal-orange: #F97316;
+  --color-deep-navy: #0B1220;
+  --color-broadcast-red: #DC2626;
+  --color-pitch-line: #1F2937;
+  --color-surface-1: #0F1729;
+  --color-surface-2: #131C32;
+  --color-paper: #F1ECE2;
+
+  --font-sans: var(--app-font-sans);
+  --font-serif: var(--app-font-serif);
+  --font-mono: var(--app-font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root, .dark {
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
+
+  /* Deep stadium navy */
+  --background: 215 63% 7%;
+  /* Goal white */
+  --foreground: 210 40% 98%;
+  
+  --border: 215 63% 15%;
+  /* Dark card background */
+  --card: 219 42% 11%;
+  --card-foreground: 210 40% 98%;
+  --card-border: 215 63% 15%;
+
+  --sidebar: 219 42% 11%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-border: 215 63% 15%;
+  --sidebar-primary: 147 75% 37%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 215 63% 15%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-ring: 147 75% 37%;
+
+  --popover: 219 42% 11%;
+  --popover-foreground: 210 40% 98%;
+  --popover-border: 215 63% 15%;
+
+  /* Pitch green */
+  --primary: 147 75% 37%;
+  --primary-foreground: 210 40% 98%;
+
+  /* Electric blue */
+  --secondary: 199 89% 60%;
+  --secondary-foreground: 215 63% 7%;
+
+  /* Soft gray text */
+  --muted: 215 63% 12%;
+  --muted-foreground: 214 32% 82%;
+
+  /* Fresh grass */
+  --accent: 142 71% 45%;
+  --accent-foreground: 215 63% 7%;
+
+  /* Red card */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+
+  --input: 215 63% 20%;
+  --ring: 147 75% 37%;
+
+  --app-font-sans: 'Inter', sans-serif;
+  --app-font-serif: Georgia, serif;
+  --app-font-mono: 'Space Mono', Menlo, monospace;
+  --radius: 0.75rem; /* 12px */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    background: hsl(var(--background));
+  }
+
+  html {
+    min-height: 100dvh;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    margin: 0;
+  }
+}
