@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
-import { Home, Trophy, BarChart3, CheckSquare, Settings, LayoutDashboard, ScrollText, User as UserIcon, LogOut } from "lucide-react";
+import { Home, Trophy, BarChart3, CheckSquare, Settings, LayoutDashboard, ScrollText, User as UserIcon, Users, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -86,6 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navItems = isAdmin
     ? [
         { name: "Admin", href: "/admin", icon: Settings },
+        { name: "Users", href: "/admin/users", icon: Users },
         { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
         { name: "Results", href: "/results", icon: BarChart3 },
         { name: "Rules", href: "/rules", icon: ScrollText },

@@ -14,6 +14,7 @@ import Leaderboard from "@/pages/Leaderboard";
 import Results from "@/pages/Results";
 import Profile from "@/pages/Profile";
 import Admin from "@/pages/Admin";
+import AdminUsers from "@/pages/AdminUsers";
 import Rules from "@/pages/Rules";
 import VerifyEmail from "@/pages/VerifyEmail";
 import Payment from "@/pages/Payment";
@@ -46,6 +47,9 @@ function Router() {
       </Route>
       <Route path="/admin">
         <AppShell><Admin /></AppShell>
+      </Route>
+      <Route path="/admin/users">
+        <AppShell><AdminUsers /></AppShell>
       </Route>
       <Route path="/rules">
         <AppShell><Rules /></AppShell>

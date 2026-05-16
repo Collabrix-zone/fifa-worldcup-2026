@@ -254,29 +254,26 @@ export default function Admin() {
         <FixturesTable rows={matches.data ?? []} loading={matches.isLoading} />
       </section>
 
-      {/* Users directory */}
+      {/* Members shortcut — full user management lives on /admin/users. */}
       <section>
-        <div className="mb-4 flex items-end justify-between gap-3">
+        <a
+          href="/admin/users"
+          className="flex items-center justify-between gap-4 bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-colors"
+          data-testid="link-admin-users"
+        >
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-primary/80">
               Members
             </p>
-            <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight mt-1">
-              Registered users
+            <h2 className="text-lg md:text-xl font-extrabold text-white tracking-tight mt-1">
+              {users.data?.length ?? 0} registered users
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Everyone who has signed up. Sorted by signup date — newest first.
+              Edit display names, ban or unban players, review participation →
             </p>
           </div>
-          <span className="text-xs text-muted-foreground font-mono shrink-0">
-            {users.data?.length ?? 0} total
-          </span>
-        </div>
-        <UsersTable
-          rows={users.data ?? []}
-          loading={users.isLoading}
-          currentUserId={currentUser.id}
-        />
+          <Users className="w-6 h-6 text-primary shrink-0" />
+        </a>
       </section>
 
       {/* Verification queues */}
