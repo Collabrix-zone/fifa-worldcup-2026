@@ -15,7 +15,7 @@ const DEFAULT_SLUG = "goalrush-2026";
 const PROVIDER = "football-data.org";
 
 router.get("/sync/status", async (_req, res): Promise<void> => {
-  const times = getLastSyncTimes();
+  const times = await getLastSyncTimes();
   res.json(
     SyncStatus.parse({
       provider: PROVIDER,

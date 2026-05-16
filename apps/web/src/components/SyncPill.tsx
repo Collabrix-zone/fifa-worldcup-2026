@@ -31,8 +31,11 @@ export function SyncPill({ compact = false }: { compact?: boolean }) {
   }, []);
 
   const enabled = status.data?.pollerEnabled ?? false;
-  const last = status.data?.lastScoresSyncAt ?? null;
-  const fresh = last ? now - new Date(last).getTime() < 5 * 60 * 1000 : false;
+  const lastScoreSync = status.data?.lastScoresSyncAt ?? null;
+  const lastFixtureSync = status.data?.lastFixturesSyncAt ?? null;
+  const last = lastScoreSync ?? lastFixtureSync;
+  const freshWindowMs = lastScoreSync ? 5 * 60 * 1000 : 6 * 60 * 60 * 1000;
+  const fresh = last ? now - new Date(last).getTime() < freshWindowMs : false;
 
   const tone = !enabled
     ? "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
@@ -42,8 +45,10 @@ export function SyncPill({ compact = false }: { compact?: boolean }) {
 
   const label = !enabled
     ? "Auto-sync off"
-    : last
-      ? `Synced ${formatAgo(last, now)}`
+    : lastScoreSync
+      ? `Scores synced ${formatAgo(lastScoreSync, now)}`
+      : lastFixtureSync
+        ? `Fixtures synced ${formatAgo(lastFixtureSync, now)}`
       : "Waiting for first sync…";
 
   return (
@@ -51,7 +56,7 @@ export function SyncPill({ compact = false }: { compact?: boolean }) {
       className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium border ${tone} ${compact ? "" : "shadow-sm"}`}
       title={
         status.data
-          ? `Provider: ${status.data.provider}\nFixtures last synced: ${status.data.lastFixturesSyncAt ? formatAgo(status.data.lastFixturesSyncAt, now) : "never"}\nScores last synced: ${last ? formatAgo(last, now) : "never"}`
+          ? `Provider: ${status.data.provider}\nFixtures last synced: ${lastFixtureSync ? formatAgo(lastFixtureSync, now) : "never"}\nScores last synced: ${lastScoreSync ? formatAgo(lastScoreSync, now) : "never"}`
           : "Sync status"
       }
       data-testid="sync-pill"

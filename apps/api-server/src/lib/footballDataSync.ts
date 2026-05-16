@@ -10,24 +10,12 @@
 // reflect the end-of-regulation result (what predictions are scored against).
 // ET / penalties are display-only enrichment.
 
-import { db, teamsTable, matchesTable, predictionsTable, type MatchRow } from "@workspace/db";
+import { db, teamsTable, matchesTable, predictionsTable, syncStatusTable, type MatchRow } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import type { Logger } from "pino";
 import { fetchCompetitionMatches, type FdMatch, type FdTeam } from "./footballData";
 import { calculatePredictionPoints } from "./scoring";
 import { enforceLockInvariant } from "./lockTime";
-
-// Module-level last-success timestamps so the UI can render a
-// "Synced X ago" indicator without persisting another table. Resets on
-// restart — fine because the next poll tick refreshes it within 2 minutes.
-const lastSync: { fixturesAt: Date | null; scoresAt: Date | null } = {
-  fixturesAt: null,
-  scoresAt: null,
-};
-
-export function getLastSyncTimes(): { fixturesAt: Date | null; scoresAt: Date | null } {
-  return { ...lastSync };
-}
 
 export interface SyncFixturesResult {
   provider: string;
@@ -48,6 +36,28 @@ export interface SyncScoresResult {
 }
 
 const PROVIDER = "football-data.org";
+
+async function recordSyncSuccess(kind: "fixtures" | "scores"): Promise<void> {
+  await db
+    .insert(syncStatusTable)
+    .values({ kind, provider: PROVIDER, lastSuccessAt: new Date() })
+    .onConflictDoUpdate({
+      target: syncStatusTable.kind,
+      set: {
+        provider: PROVIDER,
+        lastSuccessAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+}
+
+export async function getLastSyncTimes(): Promise<{ fixturesAt: Date | null; scoresAt: Date | null }> {
+  const rows = await db.select().from(syncStatusTable);
+  return {
+    fixturesAt: rows.find((row) => row.kind === "fixtures")?.lastSuccessAt ?? null,
+    scoresAt: rows.find((row) => row.kind === "scores")?.lastSuccessAt ?? null,
+  };
+}
 
 // Coarse flag emoji map for common WC nations. football-data only gives a
 // crest URL; we keep an emoji fallback so the existing UI keeps working.
@@ -260,7 +270,7 @@ export async function syncFixtures(
     }
   }
 
-  if (out.errors.length === 0) lastSync.fixturesAt = new Date();
+  if (out.errors.length === 0) await recordSyncSuccess("fixtures");
   return out;
 }
 
@@ -387,6 +397,6 @@ export async function syncScores(
     }
   }
 
-  if (out.errors.length === 0) lastSync.scoresAt = new Date();
+  if (out.errors.length === 0) await recordSyncSuccess("scores");
   return out;
 }

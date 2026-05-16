@@ -9,7 +9,9 @@ import {
   useGetAdminOverview,
   useListAdminUsers,
   useListMatches,
+  getListMatchesQueryKey,
   useRecalculateMatch,
+  useEnterMatchResult,
   useSyncFixtures,
   useSyncScores,
   useGetPaymentSettings,
@@ -63,7 +65,14 @@ export default function Admin() {
   const queryClient = useQueryClient();
 
   const overview = useGetAdminOverview({ tournamentSlug: TOURNAMENT_SLUG });
-  const matches = useListMatches(TOURNAMENT_SLUG);
+  // Live polling so live scores from the football-data sync land here
+  // without a manual refresh.
+  const matches = useListMatches(TOURNAMENT_SLUG, undefined, {
+    query: {
+      queryKey: getListMatchesQueryKey(TOURNAMENT_SLUG),
+      refetchInterval: 30_000,
+    },
+  });
   const users = useListAdminUsers({ tournamentSlug: TOURNAMENT_SLUG });
   const recalc = useRecalculateMatch();
   const syncFixtures = useSyncFixtures();
@@ -223,6 +232,28 @@ export default function Admin() {
         </StatGroup>
       </section>
 
+      {/* Fixtures table — full FIFA schedule from football-data.org with
+          live scores refreshed every 30 s. */}
+      <section>
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-primary/80">
+              Fixtures
+            </p>
+            <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight mt-1">
+              World Cup schedule
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              All matches synced from football-data.org. Scores update live.
+            </p>
+          </div>
+          <span className="text-xs text-muted-foreground font-mono shrink-0">
+            {matches.data?.length ?? 0} fixtures
+          </span>
+        </div>
+        <FixturesTable rows={matches.data ?? []} loading={matches.isLoading} />
+      </section>
+
       {/* Users directory */}
       <section>
         <div className="mb-4 flex items-end justify-between gap-3">
@@ -314,6 +345,201 @@ export default function Admin() {
         </div>
       </section>
     </div>
+  );
+}
+
+// Full World Cup fixture table for the admin view. Pulls every match in
+// the tournament (synced from football-data.org), shows live scores +
+// status + IST kickoff, and offers an inline "Enter result" prompt for
+// matches that haven't completed yet.
+function FixturesTable({
+  rows,
+  loading,
+}: {
+  rows: import("@workspace/api-client-react").MatchWithPrediction[];
+  loading: boolean;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const enterResult = useEnterMatchResult();
+
+  if (loading) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-8 text-center text-muted-foreground">
+        Loading fixtures…
+      </div>
+    );
+  }
+  if (rows.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-8 text-center text-muted-foreground">
+        No fixtures synced yet. Use "Sync fixtures" in the overrides section
+        below to pull from football-data.org.
+      </div>
+    );
+  }
+
+  const sorted = rows
+    .slice()
+    .sort((a, b) => new Date(a.kickoffTime).getTime() - new Date(b.kickoffTime).getTime());
+
+  async function handleEnterResult(matchId: number, label: string, currentA: number | null | undefined, currentB: number | null | undefined) {
+    const raw = window.prompt(
+      `Enter regulation 90-min score for:\n${label}\n\nFormat: A-B (e.g. 2-1)`,
+      currentA != null && currentB != null ? `${currentA}-${currentB}` : "",
+    );
+    if (!raw) return;
+    const m = raw.trim().match(/^(\d+)\s*[-:]\s*(\d+)$/);
+    if (!m) {
+      toast({ title: "Invalid format", description: "Use A-B (e.g. 2-1)", variant: "destructive" });
+      return;
+    }
+    const scoreA = Number(m[1]);
+    const scoreB = Number(m[2]);
+    try {
+      await enterResult.mutateAsync({ id: matchId, data: { scoreA, scoreB } });
+      toast({ title: `Result saved: ${scoreA}-${scoreB}` });
+      await queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(TOURNAMENT_SLUG) });
+    } catch (err) {
+      toast({
+        title: "Save failed",
+        variant: "destructive",
+        description: err instanceof ApiError ? err.message : String(err),
+      });
+    }
+  }
+
+  return (
+    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-background/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="text-left px-4 py-3">Kickoff (IST)</th>
+              <th className="text-left px-4 py-3">Round</th>
+              <th className="text-left px-4 py-3">Match</th>
+              <th className="text-center px-4 py-3">Score</th>
+              <th className="text-left px-4 py-3">Status</th>
+              <th className="text-right px-4 py-3">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {sorted.map((m) => {
+              const label = `${m.teamA?.name ?? "TBD"} vs ${m.teamB?.name ?? "TBD"}`;
+              const hasScore = m.scoreA != null && m.scoreB != null;
+              return (
+                <tr key={m.id} className="hover:bg-white/[0.02]" data-testid={`fixture-row-${m.id}`}>
+                  <td className="px-4 py-3 text-muted-foreground tabular-nums whitespace-nowrap">
+                    {new Date(m.kickoffTime).toLocaleString("en-IN", {
+                      timeZone: "Asia/Kolkata",
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{m.round || "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className="font-bold text-white">{m.teamA?.name ?? "TBD"}</span>
+                    <span className="text-muted-foreground/60"> vs </span>
+                    <span className="font-bold text-white">{m.teamB?.name ?? "TBD"}</span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {hasScore ? (
+                      <span className="font-mono font-bold text-white">
+                        {m.scoreA}<span className="text-muted-foreground/60"> – </span>{m.scoreB}
+                        {m.duration === "EXTRA_TIME" && (
+                          <span className="ml-2 text-[10px] uppercase text-amber-400">AET</span>
+                        )}
+                        {m.duration === "PENALTY_SHOOTOUT" && (
+                          <span className="ml-2 text-[10px] uppercase text-amber-400">
+                            {m.penaltiesScoreA}-{m.penaltiesScoreB} pens
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground/60">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3"><StatusBadge status={m.status} /></td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleEnterResult(m.id, label, m.scoreA, m.scoreB)}
+                      disabled={enterResult.isPending}
+                      className="rounded-md border border-border bg-background px-2.5 py-1 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary disabled:opacity-50"
+                      data-testid={`btn-enter-result-${m.id}`}
+                    >
+                      {m.status === "completed" ? "Edit" : "Enter result"}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="md:hidden divide-y divide-border">
+        {sorted.map((m) => {
+          const label = `${m.teamA?.name ?? "TBD"} vs ${m.teamB?.name ?? "TBD"}`;
+          const hasScore = m.scoreA != null && m.scoreB != null;
+          return (
+            <div key={m.id} className="p-4 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-white text-sm truncate">{label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {new Date(m.kickoffTime).toLocaleString("en-IN", {
+                      timeZone: "Asia/Kolkata",
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })} IST · {m.round}
+                  </p>
+                </div>
+                <StatusBadge status={m.status} />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                {hasScore ? (
+                  <span className="font-mono font-bold text-white text-lg">
+                    {m.scoreA} – {m.scoreB}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground text-sm">No score yet</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleEnterResult(m.id, label, m.scoreA, m.scoreB)}
+                  disabled={enterResult.isPending}
+                  className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary disabled:opacity-50"
+                >
+                  {m.status === "completed" ? "Edit" : "Enter result"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: "open" | "locked" | "completed" }) {
+  const cls =
+    status === "completed"
+      ? "border-green-500/40 bg-green-500/10 text-green-300"
+      : status === "locked"
+        ? "border-red-500/40 bg-red-500/10 text-red-300"
+        : "border-blue-500/40 bg-blue-500/10 text-blue-300";
+  return (
+    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", cls)}>
+      {status}
+    </span>
   );
 }
 

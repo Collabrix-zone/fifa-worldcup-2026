@@ -7,3 +7,4 @@ export * from "./matches";
 export * from "./predictions";
 export * from "./paymentSettings";
 export * from "./objectFiles";
+export * from "./syncStatus";

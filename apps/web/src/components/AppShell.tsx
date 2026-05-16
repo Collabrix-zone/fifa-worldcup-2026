@@ -83,14 +83,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Admins don't play, so no Predict tab for them. Predict route is also
   // gated server-side on payment status (admins are flagged paid for
   // backend convenience but the UI hides the entry point anyway).
-  const navItems = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    ...(!isAdmin ? [{ name: "Predict", href: "/predictions", icon: CheckSquare }] : []),
-    { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
-    { name: "Results", href: "/results", icon: BarChart3 },
-    { name: "Rules", href: "/rules", icon: ScrollText },
-    ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: Settings }] : []),
-  ];
+  const navItems = isAdmin
+    ? [
+        { name: "Admin", href: "/admin", icon: Settings },
+        { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
+        { name: "Results", href: "/results", icon: BarChart3 },
+        { name: "Rules", href: "/rules", icon: ScrollText },
+      ]
+    : [
+        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Predict", href: "/predictions", icon: CheckSquare },
+        { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
+        { name: "Results", href: "/results", icon: BarChart3 },
+        { name: "Rules", href: "/rules", icon: ScrollText },
+      ];
 
   const points = stats.data?.totalPoints ?? 0;
 
@@ -283,15 +289,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex justify-around items-center h-16 px-2 safe-area-bottom">
-        {[
-          { name: "Home", href: "/dashboard", icon: LayoutDashboard },
-          ...(isAdmin
-            ? [{ name: "Admin", href: "/admin", icon: Settings }]
-            : [{ name: "Predict", href: "/predictions", icon: CheckSquare }]),
-          { name: "Board", href: "/leaderboard", icon: Trophy },
-          { name: "Results", href: "/results", icon: BarChart3 },
-          { name: "Profile", href: "/profile", icon: UserIcon },
-        ].map((item) => {
+        {(isAdmin
+          ? [
+              { name: "Admin", href: "/admin", icon: Settings },
+              { name: "Board", href: "/leaderboard", icon: Trophy },
+              { name: "Results", href: "/results", icon: BarChart3 },
+              { name: "Profile", href: "/profile", icon: UserIcon },
+            ]
+          : [
+              { name: "Home", href: "/dashboard", icon: LayoutDashboard },
+              { name: "Predict", href: "/predictions", icon: CheckSquare },
+              { name: "Board", href: "/leaderboard", icon: Trophy },
+              { name: "Results", href: "/results", icon: BarChart3 },
+              { name: "Profile", href: "/profile", icon: UserIcon },
+            ]
+        ).map((item) => {
           const isActive = location === item.href;
           const Icon = item.icon;
           return (

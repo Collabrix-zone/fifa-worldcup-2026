@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Trophy, Target, CheckCircle2, ChevronRight, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,12 @@ function isSameLocalDay(a: Date, b: Date): boolean {
 export default function Dashboard() {
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === "admin";
+  const [, setLocation] = useLocation();
+  // Admins don't have a personal dashboard — every admin surface lives on
+  // /admin (overview, fixtures, users, approvals). Send them straight there.
+  useEffect(() => {
+    if (isAdmin) setLocation("/admin");
+  }, [isAdmin, setLocation]);
   const stats = useGetMyStats({ tournamentSlug: TOURNAMENT_SLUG });
   const lb = useGetLeaderboard(TOURNAMENT_SLUG, { filter: "overall" });
   const leader = lb.data?.[0];
