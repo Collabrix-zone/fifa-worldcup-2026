@@ -1,42 +1,28 @@
-name: Cron sync (scores + fixtures)
+name: Cron sync (fixtures)
 
-# Periodic syncs against football-data.org. Two flavours:
-#   - scores : fast (<2s) → hit the secret-protected webhook on Vercel.
-#   - fixtures : slow (~100s, beyond Vercel hobby timeout) → run the
-#     pnpm sync-fixtures CLI here against Neon directly.
+# Periodic fixture sync from football-data.org.
+#
+# Why this workflow only runs fixtures, not scores:
+#   - Scores must poll on the order of minutes during live matches, and
+#     GitHub Actions cron drifts to 30-60 min gaps under cluster load.
+#     The score sync now runs from an external cron service (cron-job.org)
+#     that hits the secret-protected /api/cron/sync-scores webhook
+#     reliably every few minutes.
+#   - Fixtures take ~100s to sync (33 team lookups + writes) and exceed
+#     the Vercel hobby function timeout, so they keep running here in a
+#     long-lived job that talks to the database directly.
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # every 5 min (scores)
-    - cron: "0 */6 * * *"   # every 6 h (fixtures)
+    - cron: "0 */6 * * *"   # every 6 hours
   workflow_dispatch: {}
 
 concurrency:
-  group: cron-sync
+  group: cron-sync-fixtures
   cancel-in-progress: false
 
-env:
-  APP_URL: https://yesfamindia-football-2026.vercel.app
-
 jobs:
-  scores:
-    if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: POST /api/cron/sync-scores
-        env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-        run: |
-          set -e
-          curl -fsS -X POST "$APP_URL/api/cron/sync-scores" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            -H "Content-Type: application/json" \
-            -d '{}' \
-            -w "\nHTTP %{http_code}\n"
-
   fixtures:
-    if: github.event.schedule == '0 */6 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
