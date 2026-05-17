@@ -28,6 +28,7 @@ import { useUpload } from "@workspace/object-storage-web";
 import { TOURNAMENT_SLUG } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { PizzaPrize } from "@/components/PizzaPrize";
+import { CommunityChatCard } from "@/components/CommunityChatCard";
 
 export default function Profile() {
   const { currentUser, logout, refresh, isLoggedIn } = useAuth();
@@ -192,6 +193,8 @@ export default function Profile() {
                 You're currently #1 — keep predicting to lock in the pizza.
               </div>
             )}
+
+            <CommunityChatCard />
 
             {/* Verification status block */}
             <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-5 space-y-3">

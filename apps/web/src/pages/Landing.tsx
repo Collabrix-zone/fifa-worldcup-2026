@@ -279,20 +279,49 @@ export default function Landing() {
               transition={{ duration: 0.5, ease }}
               className="relative overflow-hidden rounded-3xl border border-border bg-card/80 p-6 shadow-2xl backdrop-blur-sm sm:p-8"
             >
-              <div className="mb-6 flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
-                    Match centre
-                  </p>
-                  <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                    Tonight & up next
-                  </h2>
-                </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" aria-hidden="true" />
-                  Live
-                </span>
-              </div>
+              {(() => {
+                const now = Date.now();
+                const nextMs = nextKickoff ? new Date(nextKickoff).getTime() : 0;
+                const diff = nextMs - now;
+                const isLive = openMatches.some((m) => {
+                  const ko = new Date(m.kickoffTime).getTime();
+                  return ko <= now && ko + 2.5 * 60 * 60 * 1000 >= now;
+                });
+                const isToday = diff > 0 && diff < 24 * 60 * 60 * 1000;
+                const heading = isLive
+                  ? "Live now"
+                  : isToday
+                    ? "Tonight & up next"
+                    : "Next up";
+                let chipLabel = "Scheduled";
+                let chipLive = false;
+                if (isLive) {
+                  chipLabel = "Live";
+                  chipLive = true;
+                } else if (diff > 0) {
+                  const days = Math.floor(diff / 86_400_000);
+                  const hours = Math.floor(diff / 3_600_000);
+                  chipLabel = days >= 1 ? `T-${days}d` : hours >= 1 ? `T-${hours}h` : `T-${Math.max(1, Math.floor(diff / 60_000))}m`;
+                }
+                return (
+                  <div className="mb-6 flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+                        Match centre
+                      </p>
+                      <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                        {heading}
+                      </h2>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary tabular-nums">
+                      {chipLive && (
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" aria-hidden="true" />
+                      )}
+                      {chipLabel}
+                    </span>
+                  </div>
+                );
+              })()}
 
               {matchesQ.isLoading ? (
                 <p className="text-sm text-muted-foreground">Loading fixtures…</p>

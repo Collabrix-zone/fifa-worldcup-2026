@@ -14,6 +14,7 @@ import { TOURNAMENT_SLUG } from "@/lib/constants";
 import { QuickPredictCard } from "@/components/QuickPredictCard";
 import { MatchDetailDialog } from "@/components/MatchDetailDialog";
 import { PizzaPrize } from "@/components/PizzaPrize";
+import { CommunityChatCard } from "@/components/CommunityChatCard";
 import { useGetLeaderboard } from "@workspace/api-client-react";
 
 function isSameLocalDay(a: Date, b: Date): boolean {
@@ -97,6 +98,8 @@ export default function Dashboard() {
           leaderPoints={leader?.totalPoints ?? null}
         />
       )}
+
+      {!isAdmin && <CommunityChatCard />}
 
       {!isAdmin && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
