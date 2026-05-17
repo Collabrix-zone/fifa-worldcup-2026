@@ -72,6 +72,7 @@ export const ListTournamentsResponseItem = zod.object({
   startDate: zod.coerce.date().nullish(),
   endDate: zod.coerce.date().nullish(),
   isPublic: zod.boolean(),
+  rulesMd: zod.string(),
   createdAt: zod.coerce.date(),
 });
 export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem);
@@ -89,6 +90,7 @@ export const GetTournamentResponse = zod.object({
   startDate: zod.coerce.date().nullish(),
   endDate: zod.coerce.date().nullish(),
   isPublic: zod.boolean(),
+  rulesMd: zod.string(),
   createdAt: zod.coerce.date(),
   isParticipant: zod.boolean(),
   participantCount: zod.number(),
@@ -780,6 +782,23 @@ export const SetUserNameBody = zod.object({
 });
 
 export const SetUserNameResponse = zod.object({
+  ok: zod.boolean().optional(),
+});
+
+/**
+ * @summary Update the markdown body shown on the public /rules page
+ */
+export const SetTournamentRulesParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const setTournamentRulesBodyRulesMdMax = 50000;
+
+export const SetTournamentRulesBody = zod.object({
+  rulesMd: zod.string().max(setTournamentRulesBodyRulesMdMax),
+});
+
+export const SetTournamentRulesResponse = zod.object({
   ok: zod.boolean().optional(),
 });
 

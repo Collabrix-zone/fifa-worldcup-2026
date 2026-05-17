@@ -10,6 +10,9 @@ export const tournamentsTable = pgTable("tournaments", {
   startDate: timestamp("start_date", { withTimezone: true }),
   endDate: timestamp("end_date", { withTimezone: true }),
   isPublic: boolean("is_public").notNull().default(true),
+  // Admin-editable rules body, rendered as markdown on the public /rules
+  // page. Stored here so changes don't require a redeploy.
+  rulesMd: text("rules_md").notNull().default(""),
   createdBy: integer("created_by").references(() => usersTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

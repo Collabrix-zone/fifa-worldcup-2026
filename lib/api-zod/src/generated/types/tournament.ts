@@ -18,5 +18,6 @@ export interface Tournament {
   /** @nullable */
   endDate?: Date | null;
   isPublic: boolean;
+  rulesMd: string;
   createdAt: Date;
 }

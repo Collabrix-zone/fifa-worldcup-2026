@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 import {
   ScrollText,
   Trophy,
@@ -11,6 +12,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGetTournament } from "@workspace/api-client-react";
+import { TOURNAMENT_SLUG } from "@/lib/constants";
 
 const BASE_RULES = [
   {
@@ -129,8 +132,26 @@ const TONE_MAP = {
 type Tone = keyof typeof TONE_MAP;
 
 export default function Rules() {
+  // Admin-editable rules body. Scoring rules below stay hard-coded so the
+  // math the leaderboard depends on can never drift via UI edits.
+  const tournament = useGetTournament(TOURNAMENT_SLUG);
+  const customRules = (tournament.data?.rulesMd ?? "").trim();
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-10 pb-24">
+      {customRules && (
+        <section
+          className="rounded-2xl border border-primary/30 bg-primary/[0.04] p-6 md:p-8"
+          data-testid="tournament-rules-body"
+        >
+          <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
+            <Sparkles className="w-3.5 h-3.5" /> Tournament rules
+          </div>
+          <article className="prose prose-invert prose-sm md:prose-base max-w-none prose-headings:text-white prose-strong:text-white prose-a:text-primary">
+            <ReactMarkdown>{customRules}</ReactMarkdown>
+          </article>
+        </section>
+      )}
+
       {/* Hero */}
       <motion.section
         initial={{ opacity: 0, y: -8 }}

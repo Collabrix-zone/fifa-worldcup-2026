@@ -51,6 +51,8 @@ import type {
   Prediction,
   PredictionInput,
   ProfileUpdate,
+  SetTournamentRules200,
+  SetTournamentRulesBody,
   SetUserName200,
   SetUserNameBody,
   SignupInput,
@@ -3206,6 +3208,93 @@ export const useSetUserName = <
   TContext
 > => {
   return useMutation(getSetUserNameMutationOptions(options));
+};
+
+/**
+ * @summary Update the markdown body shown on the public /rules page
+ */
+export const getSetTournamentRulesUrl = (slug: string) => {
+  return `/api/admin/tournaments/${slug}/rules`;
+};
+
+export const setTournamentRules = async (
+  slug: string,
+  setTournamentRulesBody: SetTournamentRulesBody,
+  options?: RequestInit,
+): Promise<SetTournamentRules200> => {
+  return customFetch<SetTournamentRules200>(getSetTournamentRulesUrl(slug), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setTournamentRulesBody),
+  });
+};
+
+export const getSetTournamentRulesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setTournamentRules>>,
+    TError,
+    { slug: string; data: BodyType<SetTournamentRulesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setTournamentRules>>,
+  TError,
+  { slug: string; data: BodyType<SetTournamentRulesBody> },
+  TContext
+> => {
+  const mutationKey = ["setTournamentRules"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setTournamentRules>>,
+    { slug: string; data: BodyType<SetTournamentRulesBody> }
+  > = (props) => {
+    const { slug, data } = props ?? {};
+
+    return setTournamentRules(slug, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetTournamentRulesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setTournamentRules>>
+>;
+export type SetTournamentRulesMutationBody = BodyType<SetTournamentRulesBody>;
+export type SetTournamentRulesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update the markdown body shown on the public /rules page
+ */
+export const useSetTournamentRules = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setTournamentRules>>,
+    TError,
+    { slug: string; data: BodyType<SetTournamentRulesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setTournamentRules>>,
+  TError,
+  { slug: string; data: BodyType<SetTournamentRulesBody> },
+  TContext
+> => {
+  return useMutation(getSetTournamentRulesMutationOptions(options));
 };
 
 /**

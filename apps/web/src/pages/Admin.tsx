@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
@@ -23,7 +24,10 @@ import {
   useBanUser,
   useUnbanUser,
   useSetUserName,
+  useGetTournament,
+  useSetTournamentRules,
   getListAdminUsersQueryKey,
+  getGetTournamentQueryKey,
   ApiError,
   type PendingPayment,
   type PendingIdentity,
@@ -276,6 +280,9 @@ export default function Admin() {
         </a>
       </section>
 
+      {/* Editable tournament rules markdown */}
+      <RulesEditorCard />
+
       {/* Verification queues */}
       <section className="space-y-6">
         <div>
@@ -523,6 +530,91 @@ function FixturesTable({
         })}
       </div>
     </div>
+  );
+}
+
+// Admin-editable markdown for /rules. Live preview on the right; saves
+// to the tournament row server-side. Scoring rules below the editor on
+// /rules stay hard-coded so admins can't break the leaderboard math.
+function RulesEditorCard() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const tournament = useGetTournament(TOURNAMENT_SLUG);
+  const setRules = useSetTournamentRules();
+  const [draft, setDraft] = useState<string | null>(null);
+  const serverValue = tournament.data?.rulesMd ?? "";
+  const value = draft ?? serverValue;
+  const dirty = draft != null && draft !== serverValue;
+
+  async function save() {
+    if (draft == null) return;
+    try {
+      await setRules.mutateAsync({ slug: TOURNAMENT_SLUG, data: { rulesMd: draft } });
+      toast({ title: "Rules updated" });
+      setDraft(null);
+      await queryClient.invalidateQueries({
+        queryKey: getGetTournamentQueryKey(TOURNAMENT_SLUG),
+      });
+    } catch (err) {
+      toast({
+        title: "Save failed",
+        variant: "destructive",
+        description: err instanceof ApiError ? err.message : String(err),
+      });
+    }
+  }
+
+  return (
+    <section>
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-primary/80">
+            Rules
+          </p>
+          <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight mt-1">
+            Tournament rules &amp; notes
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Markdown. Renders above the scoring section on the public /rules page.
+            Scoring math is hard-coded and cannot be edited from here.
+          </p>
+        </div>
+        <Button
+          onClick={save}
+          disabled={!dirty || setRules.isPending}
+          className="font-bold shrink-0"
+          data-testid="button-save-rules"
+        >
+          {setRules.isPending ? "Saving…" : dirty ? "Save changes" : "Saved"}
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Markdown</p>
+          <textarea
+            value={value}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={`# Tournament rules\n\n- Entry fee: 100\n- Lock window: 15 min before kickoff\n- Pizza for the leader\n`}
+            spellCheck={false}
+            className="w-full h-72 resize-y bg-background border border-border rounded-md p-3 text-sm font-mono leading-6 text-white placeholder:text-muted-foreground/70 focus:outline-none focus:border-primary/50"
+            data-testid="textarea-rules"
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            {value.length}/50000 characters
+          </p>
+        </div>
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Preview</p>
+          <article className="prose prose-invert prose-sm max-w-none h-72 overflow-y-auto rounded-md border border-border bg-background p-3 prose-headings:text-white prose-strong:text-white prose-a:text-primary">
+            {value.trim() ? (
+              <ReactMarkdown>{value}</ReactMarkdown>
+            ) : (
+              <p className="text-muted-foreground italic">Empty — type markdown on the left to see a preview.</p>
+            )}
+          </article>
+        </div>
+      </div>
+    </section>
   );
 }
 

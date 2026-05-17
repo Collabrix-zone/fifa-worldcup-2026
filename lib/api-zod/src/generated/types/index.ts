@@ -59,6 +59,8 @@ export * from "./predictionInput";
 export * from "./predictionResultLabel";
 export * from "./predictionStatus";
 export * from "./profileUpdate";
+export * from "./setTournamentRules200";
+export * from "./setTournamentRulesBody";
 export * from "./setUserName200";
 export * from "./setUserNameBody";
 export * from "./signupInput";

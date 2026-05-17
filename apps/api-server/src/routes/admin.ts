@@ -8,6 +8,7 @@ import {
   predictionsTable,
   teamsTable,
   paymentSettingsTable,
+  tournamentsTable,
 } from "@workspace/db";
 import {
   AdminOverview,
@@ -352,6 +353,20 @@ router.patch("/admin/users/:id/name", requireAdmin, async (req, res): Promise<vo
     displayNameLockedAt: new Date(),
   }).where(eq(usersTable.id, id));
   await db.update(participantsTable).set({ displayName: name }).where(eq(participantsTable.userId, id));
+  res.json({ ok: true });
+});
+
+router.patch("/admin/tournaments/:slug/rules", requireAdmin, async (req, res): Promise<void> => {
+  const slug = String(req.params.slug);
+  const rulesMd = typeof req.body?.rulesMd === "string" ? req.body.rulesMd : null;
+  if (rulesMd == null) { res.status(400).json({ error: "rulesMd is required" }); return; }
+  if (rulesMd.length > 50_000) { res.status(400).json({ error: "Rules too long (max 50k chars)" }); return; }
+  const [updated] = await db
+    .update(tournamentsTable)
+    .set({ rulesMd })
+    .where(eq(tournamentsTable.slug, slug))
+    .returning({ id: tournamentsTable.id });
+  if (!updated) { res.status(404).json({ error: "Tournament not found" }); return; }
   res.json({ ok: true });
 });
 

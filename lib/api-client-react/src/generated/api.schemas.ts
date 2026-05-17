@@ -63,6 +63,7 @@ export interface Tournament {
   /** @nullable */
   endDate?: string | null;
   isPublic: boolean;
+  rulesMd: string;
   createdAt: string;
 }
 
@@ -86,6 +87,7 @@ export interface TournamentDetail {
   /** @nullable */
   endDate?: string | null;
   isPublic: boolean;
+  rulesMd: string;
   createdAt: string;
   isParticipant: boolean;
   participantCount: number;
@@ -793,6 +795,15 @@ export type SetUserNameBody = {
 };
 
 export type SetUserName200 = {
+  ok?: boolean;
+};
+
+export type SetTournamentRulesBody = {
+  /** @maxLength 50000 */
+  rulesMd: string;
+};
+
+export type SetTournamentRules200 = {
   ok?: boolean;
 };
 

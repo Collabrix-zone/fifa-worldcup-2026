@@ -652,6 +652,29 @@ paths:
             application/json:
               schema: { type: object, properties: { ok: { type: boolean } } }
 
+  /admin/tournaments/{slug}/rules:
+    patch:
+      operationId: setTournamentRules
+      tags: [admin]
+      summary: Update the markdown body shown on the public /rules page
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rulesMd]
+              properties:
+                rulesMd: { type: string, maxLength: 50000 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean } } }
+
   /matches/{id}/lineups:
     get:
       operationId: getMatchLineups
@@ -788,7 +811,7 @@ components:
 
     Tournament:
       type: object
-      required: [id, name, slug, description, status, isPublic, createdAt]
+      required: [id, name, slug, description, status, isPublic, rulesMd, createdAt]
       properties:
         id: { type: integer }
         name: { type: string }
@@ -798,11 +821,12 @@ components:
         startDate: { type: ["string", "null"], format: date-time }
         endDate: { type: ["string", "null"], format: date-time }
         isPublic: { type: boolean }
+        rulesMd: { type: string }
         createdAt: { type: string, format: date-time }
 
     TournamentDetail:
       type: object
-      required: [id, name, slug, description, status, isPublic, createdAt, isParticipant, participantCount]
+      required: [id, name, slug, description, status, isPublic, rulesMd, createdAt, isParticipant, participantCount]
       properties:
         id: { type: integer }
         name: { type: string }
@@ -812,6 +836,7 @@ components:
         startDate: { type: ["string", "null"], format: date-time }
         endDate: { type: ["string", "null"], format: date-time }
         isPublic: { type: boolean }
+        rulesMd: { type: string }
         createdAt: { type: string, format: date-time }
         isParticipant: { type: boolean }
         participantCount: { type: integer }
