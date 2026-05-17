@@ -569,14 +569,15 @@ function RulesEditorCard() {
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-primary/80">
-            Rules
+            Announcements
           </p>
           <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight mt-1">
-            Tournament rules &amp; notes
+            Notes for the /rules page
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Markdown. Renders above the scoring section on the public /rules page.
-            Scoring math is hard-coded and cannot be edited from here.
+            Optional markdown shown <em>above</em> the scoring cards on /rules.
+            Use it for announcements, prize details, dispute rules, or anything
+            tournament-specific. Leave empty to hide. Scoring math is fixed.
           </p>
         </div>
         <Button
